@@ -6,40 +6,13 @@ Parameters:
     Description: Environment name, used as a tag for resources
     Type: String
 
-  VpcCIDR:
-    Description: CIRD IP range for the VPC (default - 10.0.0.0/16)
-    Type: String
-    Default: 10.0.0.0/16
-
-  PublicSubnet1CIDR:
-    Description: CIRD IP range for the first public subnet
-    Type: String
-    Default: 10.0.0.0/24
-
-  PrivateSubnet1CIDR:
-    Description: CIRD IP range for the first private subnet
-    Type: String
-    Default: 10.0.2.0/24
-
-  PublicSubnet2CIDR:
-    Description: CIRD IP range for the second public subnet (Availability Zone 2) (default - 10.0.1.0/24)
-    Type: String
-    Default: 10.0.1.0/24
-
-  PrivateSubnet2CIDR:
-    Description: CIRD IP range for the second private subnet (Availability Zone 2) (default - 10.0.3.0/24)
-    Type: String
-    Default: 10.0.3.0/24
-
   ImageId:
     Description: The image id will be used to provision the EC2 (Ubuntu 18.04-amd64)
     Type: String
-    Default: ami-0e9f91d99bd8d3a6e
 
   VolumeSize:
     Description: Ec2 volume size
     Type: String
-    Default: 10
 
   InstanceType:
     AllowedValues:
@@ -65,217 +38,14 @@ Parameters:
       - m4.4xlarge
       - m4.10xlarge
     ConstraintDescription: ec2 instance type. t2.nano - dev instance, t3.medium - default
-    Default: t3.medium
     Description: EC2 instance type
     Type: String
 
   CPUUsagePercentPolicyTargetValue:
     Description: Average CPU utilization
     Type: String
-    Default: 75.0
 
 Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Ref VpcCIDR
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: !Ref Environment
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: !Ref Environment
-
-  GatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref VPC
-
-  PublicSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !GetAZs '' ]
-      CidrBlock: !Ref PublicSubnet1CIDR
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: Public Subnet (Availability Zone 1)
-
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-        VpcId: !Ref VPC
-        AvailabilityZone: !Select [ 0, !GetAZs '' ]
-        CidrBlock: !Ref PrivateSubnet1CIDR
-        MapPublicIpOnLaunch: false
-        Tags:
-          - Key: Name
-            Value: Private Subnet (Availability Zone 1)
-
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-        VpcId: !Ref VPC
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
-        CidrBlock: !Ref PublicSubnet2CIDR
-        MapPublicIpOnLaunch: true
-        Tags:
-          - Key: Name
-            Value: "Public Subnet (Availability Zone 1)"
-
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-        VpcId: !Ref VPC
-        AvailabilityZone: !Select [ 1, !GetAZs '' ]
-        CidrBlock: !Ref PrivateSubnet2CIDR
-        MapPublicIpOnLaunch: false
-        Tags:
-          - Key: Name
-            Value: "Private Subnet (Availability Zone 1)"
-
-  NatGateway1EIP:
-    Type: AWS::EC2::EIP
-    DependsOn: GatewayAttachment
-    Properties:
-        Domain: vpc
-
-  NatGateway1:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGateway1EIP.AllocationId
-      SubnetId: !Ref PublicSubnet1
-      Tags:
-        - Key: Name
-          Value: "NAT Gateway 1"
-
-  NatGateway2EIP:
-    Type: AWS::EC2::EIP
-    DependsOn: GatewayAttachment
-    Properties:
-        Domain: vpc
-
-  NatGateway2:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGateway2EIP.AllocationId
-      SubnetId: !Ref PublicSubnet2
-      Tags:
-        - Key: Name
-          Value: NAT Gateway 2
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: "Public Route Table"
-
-  DefaultPublicRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  PublicSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet1
-
-  PublicSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-        RouteTableId: !Ref PublicRouteTable
-        SubnetId: !Ref PublicSubnet2
-
-  PrivateRouteTable1:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: "Private Route Table 1"
-
-  DefaultPrivateRoute1:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway1
-
-  PrivateSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      SubnetId: !Ref PrivateSubnet1
-
-  PrivateRouteTable2:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: "Private Route Table 2"
-
-  DefaultPrivateRoute2:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway2
-
-  PrivateSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      SubnetId: !Ref PrivateSubnet2
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Load Balancer HTTP traffic
-      GroupName: Load-balancer-security-group
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-      - IpProtocol: TCP
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-      - IpProtocol: TCP
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: Name
-          Value: !Ref Environment
-
-  ApplicationSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Application Security Group
-      GroupName: Application-security-group
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-      - Description: Inbound rule to allow the Load Balancer.
-        IpProtocol: TCP
-        SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
-        FromPort: 80
-        ToPort: 80
-      Tags:
-        - Key: Name
-          Value: !Ref Environment
-
   S3RoleEC2:
     Type: AWS::IAM::Role
     Properties:
@@ -310,13 +80,14 @@ Resources:
           apt-get install unzip awscli -y
           apt-get install apache2 -y
           systemctl start apache2.service
-          cd /var/www/html
+          cd /var/www/html && rm -rf *
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
       ImageId: !Ref ImageId
       IamInstanceProfile: !Ref ProfileWithRolesForApp
       SecurityGroups:
-        - Ref: LoadBalancerSecurityGroup
+        - !ImportValue
+          'Fn::Sub': 'ApplicationSecurityGroup'
       InstanceType: !Ref InstanceType
       BlockDeviceMappings:
       - DeviceName: "/dev/sdk"
@@ -334,14 +105,15 @@ Resources:
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 5
-      VpcId: !Ref VPC
+      VpcId:
+        Fn::ImportValue:
+          !Sub VPCID
 
   AppServerGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: 
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub PrivateSubs
       LaunchConfigurationName: !Ref AppServer
       MinSize: '4'
       MaxSize: '4'
@@ -356,10 +128,13 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Subnets:
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet2
+        - Fn::ImportValue:
+            !Sub PublicSubnet1
+        - Fn::ImportValue:
+            !Sub PublicSubnet2
       SecurityGroups:
-        - Ref: LoadBalancerSecurityGroup
+        - !ImportValue
+          'Fn::Sub': 'LBSecurityGroupID'
       Tags:
         - Key: Name
           Value: !Ref Environment
@@ -397,53 +172,6 @@ Resources:
         TargetValue: !Ref CPUUsagePercentPolicyTargetValue
 
 Outputs:
-  VPC:
-    Description: VPC information
-    Value: !Ref VPC
-    Export:
-      Name: !Sub VPCID
-
-  PublicSubnet1CIDR:
-    Description: Public Subnet 1 CIDR
-    Value: !Ref PublicSubnet1
-    Export:
-      Name: !Sub Public-Subnet-1-CIDR
-
-  PublicSubnet2CIDR:
-    Description: Public Subnet 2 CIDR
-    Value: !Ref PublicSubnet2CIDR
-    Export:
-      Name: !Sub Public-Subnet-2-CIDR
-
-  PublicSubnet1:
-    Description: Public Subnet 1 ID
-    Value: !Ref PublicSubnet1
-    Export:
-      Name: !Sub PublicSubnet1
-
-  PublicSubnet2:
-    Description: Public Subnet 2 ID
-    Value: !Ref PublicSubnet2
-    Export:
-      Name: !Sub PublicSubnet2
-
-  ApplicationSecurityGroup:
-    Description: Applicaion security group
-    Value: !Ref ApplicationSecurityGroup
-    Export:
-      Name: !Sub ApplicationSecurityGroup
-
-  LoadBalancerSecurityGroup:
-    Description: Load balancer security group
-    Value: !Ref LoadBalancerSecurityGroup
-    Export:
-      Name: !Sub LBSecurityGroupID
-
   DNS:
     Description: LoadBalancer URL
-    Value:
-      !Sub
-        - 'http://${DNSName}'
-        - {DNSName: !GetAtt 'AppLoadBalancer.DNSName'}
-    Export:
-      Name: !Sub "SiteURL"
+    Value: !Join [ "", [ "http://", !GetAtt AppLoadBalancer.DNSName ] ]

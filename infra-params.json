@@ -2,5 +2,21 @@
   {
     "ParameterKey": "Environment",
     "ParameterValue": "HA-WebApp"
+  },
+  {
+    "ParameterKey": "ImageId",
+    "ParameterValue": "ami-0e9f91d99bd8d3a6e"
+  },
+  {
+    "ParameterKey": "VolumeSize",
+    "ParameterValue": "10"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.medium"
+  },
+  {
+    "ParameterKey": "CPUUsagePercentPolicyTargetValue",
+    "ParameterValue": "75.0"
   }
 ]
